@@ -101,17 +101,17 @@ and open the template in the editor.
 			this.data = new Object();
 			this.data.value = this.value;
 			$(this).focus(function(){
-				if (this.value == this.data.value) this.value = '';
+				if (this.value === this.data.value) this.value = '';
 			});
 			$(this).blur(function(){
-				if (this.value == '') this.value = this.data.value;
+				if (this.value === '') this.value = this.data.value;
 			});
 		});
 	});
 	
 	// comparing two arrays function
 	Array.prototype.compare = function (array) {
-		if (this[0] == array[0] && this[1] == array[1] && this[2] == array[2])
+		if (this[0] === array[0] && this[1] === array[1] && this[2] === array[2])
 			return true;
 		else
 			return false;
@@ -119,7 +119,7 @@ and open the template in the editor.
 		
 	// comparing two arrays function
 	Array.prototype.compareObj = function (object) {
-		if (this[0] == object.x && this[1] == object.y && this[2] == object.z)
+		if (this[0] === object.x && this[1] === object.y && this[2] === object.z)
 			return true;
 		else
 			return false;
