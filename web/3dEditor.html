@@ -16,6 +16,7 @@
 <script src="js/GeometryUtils.js"></script>
 <script src="js/OrbitControls.js"></script>
 <script src="js/STLLoader.js"></script>
+<script src="js/FileSaver.js"></script>
 <script src="js/THREEx.KeyboardState.js"></script>
 <script src="js/THREEx.FullScreen.js"></script>
 <script src="js/THREEx.WindowResize.js"></script>
@@ -33,7 +34,8 @@
     Y<input type="text" id="ymove_value" size="4"/>
     Z<input type="text" id="zmove_value" size="4"/> <button onclick="Move()"> Move </button><br>
     <input type="text" id="extrVal" size="4"/> <button onclick="Extrude()"> Extrude </button>  <br>
-    <button onclick="Reset()"> Reset </button> <button onclick="setOrigin()"> Set Origin </button>
+    <button onclick="Reset()"> Reset </button> <button onclick="setOrigin()"> Set Origin </button><br>
+    <button onclick="saveSTL()"> Download </button>
 </div>
 <script>
 
@@ -129,18 +131,18 @@ function init()
 }
 
 function addMesh(){
-	loader = new THREE.STLLoader();
-	loader.addEventListener( 'load', function ( event ) {
-        geometry = event.content;
-        geometry.mergeVertices();
-        newMesh(geometry);
+    loader = new THREE.STLLoader();
+    loader.addEventListener( 'load', function ( event ) {
+    geometry = event.content;
+    geometry.mergeVertices();
+    newMesh(geometry);
 
-        geometryOrig = geometry.vertices.slice(0); console.log(geometryOrig);
-		totalFaceCount = geometry.faces.length;
-		totalVertexCount = geometry.vertices.length;
-		stats.innerHTML = totalVertexCount.toString() + ' vertices' + '<br/>' + totalFaceCount.toString() + ' facets';
-	});
-	loader.load('Model/1004.STL');
+    geometryOrig = geometry.vertices.slice(0); console.log(geometryOrig);
+    totalFaceCount = geometry.faces.length;
+    totalVertexCount = geometry.vertices.length;
+    stats.innerHTML = totalVertexCount.toString() + ' vertices' + '<br/>' + totalFaceCount.toString() + ' facets';
+    });
+    loader.load('Model/1004.STL');
 }
 
 function newMesh(geom){
@@ -154,13 +156,13 @@ function newMesh(geom){
 
 function onDocumentMouseMove( event ) 
 {
-	// the following line would stop any other event handler from firing
-	// (such as the mouse's TrackballControls)
-	//event.preventDefault();
+    // the following line would stop any other event handler from firing
+    // (such as the mouse's TrackballControls)
+    //event.preventDefault();
 	
-	// update the mouse variable
-	mouse.x = ( event.clientX / 400 ) * 2 - 1;
-	mouse.y = - ( event.clientY / 300 ) * 2 + 1;
+    // update the mouse variable
+    mouse.x = ( event.clientX / 400 ) * 2 - 1;
+    mouse.y = - ( event.clientY / 300 ) * 2 + 1;
 }
 
 function onDocumentMouseDown( event ){
@@ -182,8 +184,8 @@ function ColorSelected(){
 */
 function checkSelection(){ 
 
-	//test items in selected faces array
-	var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
+    //test items in selected faces array
+    var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
     projector.unprojectVector( vector, camera );
     var ray = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
     
@@ -343,21 +345,21 @@ function Plane(intFace, newFaceArr){
 }
 
 function planeExtrapolate(match1,match0){
-	var i = 0, count2 = 0;
-	while(i < match0.length){
-		for(var j=0; j< match1.length; j++){
-			count2 += CompareFaces( geometry.faces[ match1[j]], geometry.faces[ match0[i]] );
-		}
-		if( count2 > 0)
-		{
-			var temp = match0[i];
-			match0.splice(i,1);
-			match1.push( temp);
-		}	
-		else
-			i++;
-	} console.log(match1);
-	return match1;
+    var i = 0, count2 = 0;
+    while(i < match0.length){
+    for(var j=0; j< match1.length; j++){
+        count2 += CompareFaces( geometry.faces[ match1[j]], geometry.faces[ match0[i]] );
+    }
+    if( count2 > 0)
+    {
+        var temp = match0[i];
+	match0.splice(i,1);
+	match1.push( temp);
+    }	
+    else
+        i++;
+    }
+    return match1;
 }
 
 // Return unique values inside array
@@ -413,7 +415,7 @@ function Extrude(){
             vertArr.push(geometry.faces[planeSelect[i]].c);
         }
         vertArr = vertArr.getUnique();
-		vertArr.sort(function(a, b){return a - b});
+        vertArr.sort(function(a, b){return a - b});
         for(var i=0; i<vertArr.length; i++){
 			geometry.vertices[vertArr[i]].x += val * intNormal.x;
 			geometry.vertices[vertArr[i]].y += val * intNormal.y;
@@ -445,8 +447,6 @@ function Reset(){
 
 }
 
-function toString(v) { return "[ " + v.x + ", " + v.y + ", " + v.z + " ]"; }
-
 function render() 
 {
     requestAnimationFrame( render );
@@ -464,7 +464,39 @@ function update()
     ColorSelected();
 */    controls.update();
 }
-
+function stringifyVertex(vec){
+  return "vertex "+vec.x+" "+vec.y+" "+vec.z+" \n";
+}
+ 
+// Given a THREE.Geometry, create an STL string
+function generateSTL(geo){
+  var vertices = geo.vertices;
+  var tris     = geo.faces;
+ 
+  var stl = "solid pixel";
+  for(var i = 0; i<tris.length; i++){
+    stl += ("facet normal "+stringifyVertex( tris[i].normal )+" \n");
+    stl += ("outer loop \n");
+    stl += stringifyVertex( vertices[ tris[i].a ]);
+    stl += stringifyVertex( vertices[ tris[i].b ]);
+    stl += stringifyVertex( vertices[ tris[i].c ]);
+    stl += ("endloop \n");
+    stl += ("endfacet \n");
+  }
+  stl += ("endsolid");
+ 
+  return stl;
+}
+ 
+// Use FileSaver.js 'saveAs' function to save the string
+function saveSTL( ){  
+  var stlString = generateSTL( geometry );
+  
+  var blob = new Blob([stlString], {type: 'text/plain'});
+  
+  saveAs(blob, name + 'CHACHA.stl');
+  
+}
 </script>
 
 </body>
