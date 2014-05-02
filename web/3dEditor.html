@@ -5,7 +5,20 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <link rel=stylesheet href="css/base.css"/>
-    
+    <script>
+                    var fileName;
+                    var filename;
+                    var fileType;
+                    function func()
+                    {
+                    fileName = document.getElementById("fileinput").files[0].name;
+                    filename = fileName.replace(/^.*\\/, "");
+                    }
+                    function func1()
+                    {
+                    document.getElementById("hidden").value = filename;
+                    }
+        </script>
 </head>
 
 <body>
@@ -16,50 +29,39 @@
 <script src="js/GeometryUtils.js"></script>
 <script src="js/OrbitControls.js"></script>
 <script src="js/STLLoader.js"></script>
-<script src="js/FileSaver.js"></script>
 <script src="js/THREEx.KeyboardState.js"></script>
 <script src="js/THREEx.FullScreen.js"></script>
 <script src="js/THREEx.WindowResize.js"></script>
 <script src="js/jquery-2.1.0.min.js"></script>
+<script src="js/FileSaver.js"></script>
 
-<div id="ThreeJS" style="z-index: 1; position: absolute; left:0px; top:0px"></div>
-<div id="editBox" style="position: relative; top:300px"> 
-    X<input type="text" id="xscale_value" size="4"/>
-    Y<input type="text" id="yscale_value" size="4"/>
-    Z<input type="text" id="zscale_value" size="4"/> <button onclick="Scale()"> Scale </button><br>
-    X<input type="text" id="xrot_value" size="4"/>
-    Y<input type="text" id="yrot_value" size="4"/>
-    Z<input type="text" id="zrot_value" size="4"/> <button onclick="Rotate()"> Rotate </button><br>
-    X<input type="text" id="xmove_value" size="4"/>
-    Y<input type="text" id="ymove_value" size="4"/>
-    Z<input type="text" id="zmove_value" size="4"/> <button onclick="Move()"> Move </button><br>
-    <input type="text" id="extrVal" size="4"/> <button onclick="Extrude()"> Extrude </button>  <br>
-    <button onclick="Reset()"> Reset </button> <button onclick="setOrigin()"> Set Origin </button><br>
-    <button onclick="saveSTL()"> Download </button>
+<div id="ThreeJS" style="z-index: 1; position: relative; left:0px; top:5px"></div>
+<div style="position: absolute; left: 900px; top: 0px">
+    X=<input type="text" id="xvalue" size="4"/> 
+    Y=<input type="text" id="yvalue" size="4"/> 
+    Z=<input type="text" id="zvalue" size="4"/><br>
+    <input type="radio" name="modelEdit" id="move" onclick="move()"><label for="move">Move</label>          
+    <input type="radio" name="modelEdit" id="scale" onclick="scale()"><label for="scale">Scale</label>
+    <input type="radio" name="modelEdit" id="rotate" onclick="rotate()"><label for="rotate">Rotate</label><br/> 
+    <input type="text" id="extrVal" size="4"/><button onclick="extrude()"> Extrude </button><br>
+    <button onclick="saveSTL()">Download</button>
+    <button onclick="reset()"> Reset </button>
 </div>
 <script>
 
 // MAIN
 
 // standard global variables
-var container, scene,loader, camera, renderer, controls, stats;
+var container,projector, scene,loader, camera, renderer, controls, stats;
 var keyboard = new THREEx.KeyboardState();
-var clock = new THREE.Clock();
 
 // custom global variables
-var targetList =[],intersects = [];
 var geometry = new THREE.Geometry();
-var geometryOrig;
-var projector,mouse = { x: 0, y: 0 };
-var indexFaceArr = [],intNormal; 
+var targetList =[],intersects = [];
+var mouse = { x: 0, y: 0 };
+var indexFaceArr = [],intNormal, planeSelect = []; 
 var totalFaceCount = 0,totalVertexCount = 0;
-var selectedFaces = [], INTERSECTED;
-var baseColor=new THREE.Color( 0xffffff );
-var highlightedColor=new THREE.Color( 0x00ff00 );
-var selectedColor=new THREE.Color( 0xff0000 );
-var mouseSphereCoords = null;
 var mouseSphere=[];
-var planeSelect = [];
 
 init();
 render();
@@ -67,235 +69,133 @@ render();
 // FUNCTIONS 		
 function init() 
 {
-	// SCENE
-	scene = new THREE.Scene();
+    // SCENE
+    scene = new THREE.Scene();
         
     // CAMERA 
-	var SCREEN_WIDTH = 400, SCREEN_HEIGHT =300;
-	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
-	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
-	scene.add(camera);
-	camera.position.set(700,500,500);
-	camera.lookAt(scene.position);	
-        
-	// RENDERER
-	if ( Detector.webgl )
-		renderer = new THREE.WebGLRenderer( {antialias:true} );
-	else
-		renderer = new THREE.CanvasRenderer(); 
-
-	renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-	container = document.getElementById( 'ThreeJS' );
-	container.appendChild( renderer.domElement );
-	
+    var SCREEN_WIDTH = 800, SCREEN_HEIGHT = 600;
+    var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
+    camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+    scene.add(camera);
+    camera.position.set(700,500,500);
+    camera.lookAt(scene.position);	
+    
+    // RENDERER
+    if ( Detector.webgl )
+    	renderer = new THREE.WebGLRenderer( {antialias:true} );
+    else
+    	renderer = new THREE.CanvasRenderer(); 
+    renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+    container = document.getElementById( 'ThreeJS' );
+    container.appendChild( renderer.domElement );
+    
     // EVENTSx
-	THREEx.FullScreen.bindKey({ charCode : 'f'.charCodeAt(0) });
+    THREEx.FullScreen.bindKey({ charCode : 'f'.charCodeAt(0) });
 	
     // CONTROLS
-	controls = new THREE.OrbitControls( camera, renderer.domElement );
+    controls = new THREE.OrbitControls( camera, renderer.domElement );
         
-	// LIGHT
-	var light = new THREE.HemisphereLight(0x777777);
-	scene.add(light);
+    // LIGHT
+    var light = new THREE.HemisphereLight(0x777777);
+    scene.add(light);
 
-	// AXES
-	var axes = new THREE.AxisHelper(100);
-	axes.position.set(0,0,0);
-	scene.add(axes);
+    // AXES
+    var axes = new THREE.AxisHelper(100);
+    axes.position.set(0,0,0);
+    scene.add(axes);
+    
+    ////////////
+    //STL Load//
+    ////////////
+    addMesh();
+    
+    // initialize object to perform world/screen calculations
+    projector = new THREE.Projector();
 
-	////////////
-	//STL Load//
-	////////////
-	addMesh();
-
-	// SPHERE
-	var newSphereGeom= new THREE.SphereGeometry(5,5,5);
-	var sphere= new THREE.Mesh(newSphereGeom, new THREE.MeshLambertMaterial({ color: 0x2266dd }));
-	scene.add(sphere);
-	mouseSphere.push(sphere);
-	
-	//////////////////////////////////////////////////////////////////////
-	
-	// initialize object to perform world/screen calculations
-	projector = new THREE.Projector();
-
-	// when the mouse moves, call the given function
+    // when the mouse moves, call the given function
     container.addEventListener( 'mousedown', onDocumentMouseDown, false );
-    container.addEventListener( 'mousemove', onDocumentMouseMove, false );
+    //container.addEventListener( 'mousemove', onDocumentMouseMove, false );
 
-	// STATS //
-	stats = document.createElement("div");
-	stats.id = "statistics";
-	stats.style.cssText = "position:absolute; width:100px; height:50px; text-align: left; left:10px; top:10px; font:12px Courier New; color:red; background:transparent;"
-	container.appendChild( stats );
+    // STATS BOX//
+    stats = document.createElement("div");
+    stats.id = "statistics";
+    stats.style.cssText = "position:absolute; width:100px; height:50px; text-align: left; left:10px; top:10px; font:12px Courier New; color:red; background:transparent;";
+    container.appendChild( stats );
 }
 
-function addMesh(){
+// Adds new meshes to the scene; also used for reset function
+function addMesh()
+{
     loader = new THREE.STLLoader();
     loader.addEventListener( 'load', function ( event ) {
     geometry = event.content;
     geometry.mergeVertices();
+    
     newMesh(geometry);
-
-    geometryOrig = geometry.vertices.slice(0); console.log(geometryOrig);
+    
     totalFaceCount = geometry.faces.length;
     totalVertexCount = geometry.vertices.length;
     stats.innerHTML = totalVertexCount.toString() + ' vertices' + '<br/>' + totalFaceCount.toString() + ' facets';
     });
-    loader.load('Model/1004.STL');
+    loader.load('Model/3110.stl');
 }
 
-function newMesh(geom){
+function newMesh(geom)
+{
     mesh = new THREE.Mesh( geom, new THREE.MeshLambertMaterial( { color: 0xffffff, vertexColors: THREE.FaceColors } ));
     scene.add(mesh);
     wireMesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true }));
-    //mesh.add( wireMesh );
+    mesh.add( wireMesh );
     targetList.push(mesh);
-    
 }
-
+/*
 function onDocumentMouseMove( event ) 
 {
-    // the following line would stop any other event handler from firing
-    // (such as the mouse's TrackballControls)
-    //event.preventDefault();
-	
-    // update the mouse variable
     mouse.x = ( event.clientX / 400 ) * 2 - 1;
     mouse.y = - ( event.clientY / 300 ) * 2 + 1;
 }
-
-function onDocumentMouseDown( event ){
-	
+*/
+function onDocumentMouseDown( event )
+{
     console.log("Click.");
-    mouse.x = ( event.clientX / 400  ) * 2 - 1;
-    mouse.y = - ( event.clientY / 300 ) * 2 + 1;
-    
+    mouse.x = ( event.clientX / 800  ) * 2 - 1;
+    mouse.y = - ( event.clientY / 600 ) * 2 + 1;
     checkSelection();
  }
-/*
-function ColorSelected(){
-	selectedFaces.forEach( function(arrayItem)
-		{
-			arrayItem.face.color = selectedColor;
-			arrayItem.object.geometry.colorsNeedUpdate = true;
-		});
-}
-*/
-function checkSelection(){ 
 
+// Checking faces for selection and highlighting them
+function checkSelection()
+{ 
     //test items in selected faces array
     var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
     projector.unprojectVector( vector, camera );
     var ray = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
     
     intersects = ray.intersectObjects( targetList );
-	
-    if ( intersects.length > 0 && intersects !== null ){
-        
+    if ( intersects.length > 0 )
+    {
         console.log("Hit @ " + toString( intersects[0].point ) );
-		/*
-		//test items in selected faces array
-		var test=-1; 
-		selectedFaces.forEach( function(arrayItem)
-		{
-			// if the faceIndex and object ID are the same between the intersect and selected faces ,
-			// the face index is recorded
-			if(intersects[0].faceIndex==arrayItem.faceIndex && intersects[0].object.id==arrayItem.object.id){
-				test=selectedFaces.indexOf(arrayItem);
-			}
-		});
-		
-		// if is a previously selected face, change the color back to green, otherswise change to blue
-		if(test>=0){
-			intersects[ 0 ].face.color=new THREE.Color( 0x44dd66 ); 
-			selectedFaces.splice(test, 1);
-		}
-		else{
-			intersects[ 0 ].face.color=new THREE.Color( 0x222288 ); 
-			selectedFaces.push(intersects[0]);
-		}
-        */
         intNormal = intersects[0].face.normal;
         
+        indexFaceArr= [];
         for(var i=0; i< geometry.faces.length; i++)
         {
-            if( Compare(geometry.faces[i].normal, intNormal))
+            if( compare(geometry.faces[i].normal, intNormal))
             {
                 if(intersects[0].faceIndex !== i)
                 indexFaceArr.push(i);
             }
         }
-        planeSelect = Plane(intersects[0].face, indexFaceArr);
+        planeSelect = plane(intersects[0].face, indexFaceArr);
         planeSelect.push(intersects[0].faceIndex);
-        UpdateColor(planeSelect);
+        updateColor(planeSelect);
     }
 }
-/*
-function checkHighlight(){
-	// find intersections
 
-	// create a Ray with origin at the mouse position
-	//   and direction into the scene (camera direction)
-	var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
-	projector.unprojectVector( vector, camera );
-	var ray = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
-
-	// create an array containing all objects in the scene with which the ray intersects
-	var intersects = ray.intersectObjects( targetList );
-
-	// INTERSECTED = the object in the scene currently closest to the camera 
-	//		and intersected by the Ray projected from the mouse position 	
-	
-	// if there is one (or more) intersections
-	if ( intersects.length > 0 )
-	{	// case if mouse is not currently over an object
-		if(INTERSECTED==null){
-			INTERSECTED = intersects[ 0 ];
-			INTERSECTED.face.color = highlightedColor;
-		}
-		else{	// if thse mouse is over an object
-			INTERSECTED.face.color= baseColor;
-			INTERSECTED.object.geometry.colorsNeedUpdate=true;
-			INTERSECTED = intersects[ 0 ];
-			INTERSECTED.face.color = highlightedColor;			
-		}
-		// upsdate mouseSphere coordinates and update colors
-		mouseSphereCoords = [INTERSECTED.point.x,INTERSECTED.point.y,INTERSECTED.point.z];
-		INTERSECTED.object.geometry.colorsNeedUpdate=true;
-		
-	} 
-	else // there are no intersections
-	{
-		// restore previous intersection object (if it exists) to its original color
-		if ( INTERSECTED ){
-			INTERSECTED.face.color = baseColor;
-			INTERSECTED.object.geometry.colorsNeedUpdate=true;
-		}
-		// remove previous intersection object reference
-		//     by setting current intersection object to "nothing"
-		
-		INTERSECTED = null;
-		mouseSphereCoords = null;
-		
-		
-	}
-}
-
-function CheckMouseSphere(){
-	// if the coordinates exist, make the sphere visible
-	if(mouseSphereCoords != null){
-		mouseSphere[0].position.set(mouseSphereCoords[0],mouseSphereCoords[1],mouseSphereCoords[2]);
-		mouseSphere[0].visible = true;
-	}
-	else{ // otherwise hide the sphere
-		mouseSphere[0].visible = false;
-	}
-}
-*/
-function UpdateColor(indexArr){
+// Updates plane colors 
+function updateColor(indexArr){
     if(indexArr.length > 0){
-    	for(var i=0; i< indexArr.length; i++){ 
+    	for(var i=0; i< indexArr.length; i++){
         	geometry.faces[indexArr[i]].color.setRGB(1,0,0);
     	}
     }
@@ -307,30 +207,13 @@ function UpdateColor(indexArr){
     update();
 }
 
-function Compare(vec1, vec2){
-    if(vec1.x === vec2.x && vec1.y === vec2.y && vec1.z === vec2.z)
-        return true;
-    else
-        return false;
-}
-
-function CompareFaces(face1, face2){
-    var key = ['a', 'b', 'c'],cnt = 0; 
-	for(var i=0; i<3; i++){
-		for(var j=0; j< 3; j++){
-			if( face1[key[i]] === face2[key[j]] )
-				cnt++;
-		}
-    }
-	return cnt;
-}
-
-function Plane(intFace, newFaceArr){
+// Extract intital plane from intersecting face
+function plane(intFace, newFaceArr){
     var count = 0;
 	var match1V = [], match0V = [];
     for(var n=0; n< newFaceArr.length; n++){
         count = 0;
-		count = CompareFaces(intFace, geometry.faces[ newFaceArr[n] ]);
+		count = compareFaces(intFace, geometry.faces[ newFaceArr[n] ]);
         if(count === 0)
         {
             match0V.push(newFaceArr[n]);
@@ -340,15 +223,16 @@ function Plane(intFace, newFaceArr){
             match1V.push(newFaceArr[n]);
         }
     }
-    //match1V = planeExtrapolate(match1V,match0V);
+    match1V = planeExtrapolate(match1V,match0V);
     return match1V;
 }
 
+// Extrapolate initial plane to find all triangles in a single plane
 function planeExtrapolate(match1,match0){
     var i = 0, count2 = 0;
     while(i < match0.length){
     for(var j=0; j< match1.length; j++){
-        count2 += CompareFaces( geometry.faces[ match1[j]], geometry.faces[ match0[i]] );
+        count2 += compareFaces( geometry.faces[ match1[j]], geometry.faces[ match0[i]] );
     }
     if( count2 > 0)
     {
@@ -362,49 +246,40 @@ function planeExtrapolate(match1,match0){
     return match1;
 }
 
-// Return unique values inside array
-Array.prototype.getUnique = function(){
-    var u = {}, a = [];
-    for (var i = 0, l = this.length; i < l; ++i){
-        if (u.hasOwnProperty(this[i])) {  	// hasOwnProperty returns true when there is a property exisitng in the object
-            continue;
-	}
-	a.push(this[i]);
-	u[this[i]] = 1;
-    }
-    return a;
-};
+////////////////////////////////////////////////////////////////////////////////
+//ALL EDITING FUNCTIONS//
+////////////////////////////////////////////////////////////////////////////////
 
-function Scale(){
-    var Sx = parseFloat(document.getElementById('xscale_value').value);
-    var Sy = parseFloat(document.getElementById('yscale_value').value);
-    var Sz = parseFloat(document.getElementById('zscale_value').value);
+function scale(){
+    var Sx = parseFloat(document.getElementById('xvalue').value);
+    var Sy = parseFloat(document.getElementById('yvalue').value);
+    var Sz = parseFloat(document.getElementById('zvalue').value);
     if (isNaN(Sx)){Sx = 1;} if (isNaN(Sy)){Sy = 1;} if (isNaN(Sz)){Sz = 1;}	
     mesh.scale.set(Sx,Sy,Sz);
 }
 
-function Move(){
-    var Mx = parseFloat(document.getElementById('xmove_value').value);
-    var My = parseFloat(document.getElementById('ymove_value').value);
-    var Mz = parseFloat(document.getElementById('zmove_value').value);
+function move(){
+    var Mx = parseFloat(document.getElementById('xvalue').value);
+    var My = parseFloat(document.getElementById('yvalue').value);
+    var Mz = parseFloat(document.getElementById('zvalue').value);
     if (isNaN(Mx)){Mx = 0;} if (isNaN(My)){My = 0;} if (isNaN(Mz)){Mz = 0;}	
     mesh.position.x += Mx;
     mesh.position.y += My;
     mesh.position.z += Mz;
 }
 
-function Rotate(){
+function rotate(){
     pi = Math.PI;
-    var Ax = pi * (parseFloat(document.getElementById('xrot_value').value) / 180);
-    var Ay = pi * (parseFloat(document.getElementById('yrot_value').value) / 180);
-    var Az = pi * (parseFloat(document.getElementById('zrot_value').value) / 180);
+    var Ax = pi * (parseFloat(document.getElementById('xvalue').value) / 180);
+    var Ay = pi * (parseFloat(document.getElementById('yvalue').value) / 180);
+    var Az = pi * (parseFloat(document.getElementById('zvalue').value) / 180);
     if (isNaN(Ax)){Ax = 0;} if (isNaN(Ay)){Ay = 0;} if (isNaN(Az)){Az = 0;}
     mesh.rotation.x += Ax;
     mesh.rotation.y += Ay;
     mesh.rotation.z += Az;
 }
 
-function Extrude(){
+function extrude(){
     if(intersects.length > 0)
     {
         var val = parseFloat(document.getElementById('extrVal').value);
@@ -417,9 +292,9 @@ function Extrude(){
         vertArr = vertArr.getUnique();
         vertArr.sort(function(a, b){return a - b});
         for(var i=0; i<vertArr.length; i++){
-			geometry.vertices[vertArr[i]].x += val * intNormal.x;
-			geometry.vertices[vertArr[i]].y += val * intNormal.y;
-			geometry.vertices[vertArr[i]].z += val * intNormal.z;
+            geometry.vertices[vertArr[i]].x += val * intNormal.x;
+            geometry.vertices[vertArr[i]].y += val * intNormal.y;
+            geometry.vertices[vertArr[i]].z += val * intNormal.z;
         }
     }
     else
@@ -430,22 +305,42 @@ function Extrude(){
 }
 
 function setOrigin(){
-	mesh.position.set(0,0,0);
+    mesh.position.set(0,0,0);
 }
 
-
-function Reset(){
+function reset(){
     if(intersects.length > 0){
     	intersects = []; 
     }
     planeSelect = [];
-    UpdateColor(planeSelect);
-    
+    updateColor(planeSelect);
     scene.remove(mesh);
-    geometry.vertices = geometryOrig.slice(0);
-    newMesh(geometry);
-
+    addMesh();
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// AUXILLARY FUNCTIONS //
+////////////////////////////////////////////////////////////////////////////////
+
+function compare(vec1, vec2){
+    if(vec1.x === vec2.x && vec1.y === vec2.y && vec1.z === vec2.z)
+        return true;
+    else
+        return false;
+}
+
+function compareFaces(face1, face2){
+    var key = ['a', 'b', 'c'],cnt = 0; 
+	for(var i=0; i<3; i++){
+		for(var j=0; j< 3; j++){
+			if( face1[key[i]] === face2[key[j]] )
+				cnt++;
+		}
+    }
+	return cnt;
+}
+
+function toString(v) { return "[ " + v.x + ", " + v.y + ", " + v.z + " ]"; }
 
 function render() 
 {
@@ -459,11 +354,26 @@ function update()
     geometry.verticesNeedUpdate = true;
     geometry.elementsNeedUpdate = true;
     geometry.colorsNeedUpdate = true;
-/*    checkHighlight();
-	CheckMouseSphere();
-    ColorSelected();
-*/    controls.update();
+    controls.update();
 }
+
+// Return unique values inside array
+Array.prototype.getUnique = function(){
+    var u = {}, a = [];
+    for (var i = 0, l = this.length; i < l; ++i){
+        if (u.hasOwnProperty(this[i])) {
+            continue;
+	}
+	a.push(this[i]);
+	u[this[i]] = 1;
+    }
+    return a;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// SAVE STL FILE //
+////////////////////////////////////////////////////////////////////////////////
+
 function stringifyVertex(vec){
   return "vertex "+vec.x+" "+vec.y+" "+vec.z+" \n";
 }
