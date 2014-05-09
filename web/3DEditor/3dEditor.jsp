@@ -1,51 +1,109 @@
 <!doctype html>
 <html lang="en">
-<head>
-    <title>3D Model Editor</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <link rel=stylesheet href="css/base.css"/>
-    <script>
-                    var fileName;
-                    var filename;
-                    var fileType;
-                    function func()
-                    {
-                    fileName = document.getElementById("fileinput").files[0].name;
-                    filename = fileName.replace(/^.*\\/, "");
-                    }
-                    function func1()
-                    {
-                    document.getElementById("hidden").value = filename;
-                    }
+    <head>
+        <title>3D Model Editor</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <link rel=stylesheet href="css/base.css"/>
+        <script>
+            var fileName;
+            var filename;
+            var fileType;
+            function func()
+            {
+                fileName = document.getElementById("fileinput").files[0].name;
+                filename = fileName.replace(/^.*\\/, "");
+            }
+            function func1()
+            {
+                document.getElementById("hidden").value = filename;
+            }
         </script>
-</head>
+    </head>
+    <body>
+        <script src="js/Three.js"></script>
+        <script src="js/Detector.js"></script>
+        <script src="js/STLLoader.js"></script>
+        <script src="js/FileSaver.js"></script>    
+        <script src="js/OrbitControls.js"></script>
+        <script src="js/jquery-2.1.0.min.js"></script>
+        <script src="js/THREEx.FullScreen.js"></script>
+        <script src="js/THREEx.KeyboardState.js"></script>
+        <div id="ThreeJS" style="position: relative;top: 4px"></div>
+        <img src="images/axis1.jpg" align="left" onclick="rotate1()" class="HoverBorder1"/>
+        <img src="images/axis2.jpg" align="left" onclick="rotate2()" class="HoverBorder1"/>
+        <img src="images/axis3.jpg" align="left" onclick="rotate3()" class="HoverBorder1"/>
+        <img src="images/axis4.jpg" align="left" onclick="rotate4()" class="HoverBorder1"/>
+        <img src="images/axis5.jpg" align="left" onclick="rotate5()" class="HoverBorder1"/>
+        <img src="images/axis6.jpg" align="left" onclick="rotate6()" class="HoverBorder1"/>
+        <img src="images/setOrigin.jpg" align="left" onclick="setOrigin()" class="HoverBorder1"/>
 
-<body>
-	<script src="js/Three.js"></script>
-	<script src="js/Detector.js"></script>
-	<script src="js/STLLoader.js"></script>
-	<script src="js/FileSaver.js"></script>
-	<script src="js/OrbitControls.js"></script>
-	<script src="js/jquery-2.1.0.min.js"></script>
-	<script src="js/THREEx.FullScreen.js"></script>
-	<script src="js/THREEx.KeyboardState.js"></script>
-	
-	<div id="ThreeJS" style="z-index: 1; float:left; left:0px; top:0px"></div>
-	<div style="margin-left: 610px;">
-		X=<input type="text" id="xvalue" size="4"/> 
-		Y=<input type="text" id="yvalue" size="4"/> 
-		Z=<input type="text" id="zvalue" size="4"/><br>
-		<input type="radio" name="modelEdit" id="move" onclick="move()"><label for="move">Move</label>          
-		<input type="radio" name="modelEdit" id="scale" onclick="scale()"><label for="scale">Scale</label>
-		<input type="radio" name="modelEdit" id="rotate" onclick="rotate()"><label for="rotate">Rotate</label><br/><br> Feature
-		<input type="radio" name="modelSelect" id="featureCircle" value="C"><label for="featureCircle">Circle</label>
-		<input type="radio" name="modelSelect" id="featurePlane" value="P"><label for="featurePlane">Plane</label><br/><br>
-		<input type="text" id="extrVal" size="4"/><button onclick="extrude()"> Extrude </button><br> <br>
-		<input type="text" id="test" size="4"/><button onclick="testSelect()"> Test Select Face </button><br> <br>
-		<button onclick="saveSTL()">Download</button> <button onclick="reset()"> Reset </button>
-	</div>
-<script>
+        <table border="0" width="48%" style="position: relative;top: -312px; left: 20px; border-collapse: collapse">
+            <tr>
+                <td>
+                    <p align="left">
+                        <b>Transformation:</b> Add value in the coordinate boxes given below, click the transformation required.<br/><br/>
+                        <b>Extrude:</b> Click on 3D model to select any plane and click extrude.<br/><br/>
+                        <b>Reset/Download:</b> use these functions to restore or saving the model.<br/>
+                    </p>            
+                </td>
+            </tr>
+            <tr>
+                <td>
+
+                    <form action="../upload"  method="post" ENCTYPE='multipart/form-data' name="MyForm">
+                        Select Model: <input type="file" id="fileinput" value="" name="file" onchange="func(this);" size="2"/>
+                        <script>
+                            var abc;
+                            function readSingleFile(evt) {
+                                var f = evt.target.files[0];
+                                if (f) {
+                                    var r = new FileReader();
+                                    r.onload = function(e) {
+                                        var contents = e.target.result;
+                                        abc = contents.substr(0, contents.indexOf("f"));
+                                        document.getElementById("hidden1").value = abc;
+                                    }
+                                    r.readAsText(f);
+                                } else {
+                                    alert("Failed to load file");
+                                }
+                            }
+                            document.getElementById('fileinput').addEventListener('change', readSingleFile, false);
+                        </script>
+                        <input type="hidden" name="hidden" id="hidden" value=""/>
+                        <input type="hidden" name="hidden1" id="hidden1" value=""/>
+                        <input type="submit" value="Upload" onclick="func1()" style="position: relative; left: -35px;"/><br/>
+                    </form>
+
+                </td>
+            </tr>
+            <tr>
+                <td align="center">
+                    <fieldset style="width:320px">
+                        <fieldset style="width:250px;">
+                            X=<input type="text" id="xvalue" size="4"/> 
+                            Y=<input type="text" id="yvalue" size="4"/> 
+                            Z=<input type="text" id="zvalue" size="4"/>
+                        </fieldset>
+                        <br/>
+                        <input type="radio" name="modelEdit" id="move" onclick="move()"><label for="move">Move</label>          
+                        <input type="radio" name="modelEdit" id="scale" onclick="scale()"><label for="scale">Scale</label>
+                        <input type="radio" name="modelEdit" id="rotate" onclick="rotate()"><label for="rotate">Rotate</label>
+                        <br/><br/>
+                        <input type="text" id="extrVal" placeholder="Add value (+/-)" size="11" class="HoverBorder" style="position: relative;left: 5px;"/>
+                       
+                        <img src="images/extrude.jpg" onclick="extrude()" class="HoverBorder" style="position: relative; top: 10px"/>
+                        <br/><br/>
+                        <img src="images/reset.jpg" onclick="reset()" class="HoverBorder"/>
+                        
+                        <img src="images/download.jpg" onclick="saveSTL()" class="HoverBorder"/>
+                    </fieldset>
+                </td>       
+            </tr>
+        </table>
+
+        <script>
 	
 // MAIN
 
@@ -181,9 +239,9 @@ function initCaster(){
 
 function checkSelection(select){
 	for(var i=0; i<select.length;i++){
-		if(colorSwitch[select[i]] == 1)
+		if(colorSwitch[select[i]] === 1)
 			colorSwitch[select[i]] = 0;
-		else if(colorSwitch[select[i]] == 0)
+		else if(colorSwitch[select[i]] === 0)
 			colorSwitch[select[i]] = 1;
 	}
 }
@@ -196,7 +254,7 @@ function CheckMouseSphere(){
 		mouseSphereCoords = null;
 	}
 	// if the coordinates exist, make the sphere visible
-	if(mouseSphereCoords != null){
+	if(mouseSphereCoords !== null){
 		mouseSphere[0].position.set(mouseSphereCoords[0],mouseSphereCoords[1],mouseSphereCoords[2]);
 		mouseSphere[0].visible = true;
 	}
@@ -234,7 +292,7 @@ function planeSelection() {
 var planeRecur = function (faceArr, faceMatch ){
 	var temp;
 	for(var i =0; i<faceArr.length; i++){
-		if(compareFaces( faces[faceArr[i]], faceMatch) != 0) {
+		if(compareFaces( faces[faceArr[i]], faceMatch) !== 0) {
 			temp = faceArr[i];
 			faceArr.splice(i,1);
 			selectedFaces.push(temp);
@@ -261,7 +319,7 @@ function circleSelection(){
 var circleRecur = function (faceArr, faceMatch ){
 	var temp;
 	for(var i =0; i<faceArr.length; i++){
-		if( compareFaces( faces[faceArr[i]], faceMatch) == 2 && Math.round(dotProdVector( faces[faceArr[i]].normal, faceMatch.normal)) != 0 ) {
+		if( compareFaces( faces[faceArr[i]], faceMatch) === 2 && Math.round(dotProdVector( faces[faceArr[i]].normal, faceMatch.normal)) !== 0 ) {
 			temp = faceArr[i];
 			faceArr.splice(i,1);
 			selectedFaces.push(temp);
@@ -314,7 +372,7 @@ function extrude(){
 		var val = parseFloat(document.getElementById('extrVal').value);
 		var vertArr = [];
 		for(var i=0; i<selectedFaces.length; i++){
-			if( colorSwitch[selectedFaces[i]] == 1 ){
+			if( colorSwitch[selectedFaces[i]] === 1 ){
 				vertArr.push(faces[selectedFaces[i]].a);
 				vertArr.push(faces[selectedFaces[i]].b);
 				vertArr.push(faces[selectedFaces[i]].c);
@@ -411,7 +469,7 @@ function update()
 // Updates plane colors 
 function updateColor(colorSwitch){
 	for(var i=0; i< colorSwitch.length; i++){
-		if(colorSwitch[i] == 1)
+		if(colorSwitch[i] === 1)
 			faces[i].color.setRGB(1,0,0);
 		else
 			faces[i].color.setRGB(1,1,1);
@@ -483,6 +541,5 @@ function saveSTL( ){
 }
 
 </script>
-
-</body>
-</htmlselect
+    </body>
+</html>

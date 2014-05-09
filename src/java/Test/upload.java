@@ -20,7 +20,7 @@ public class upload extends HttpServlet {
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws
             ServletException, IOException {
         try{
-    MultipartRequest m=new MultipartRequest(request, "C:/Users/mani/Dropbox/acads/DDP/3D Model Editing/3DEditorEF/web/Model", 100*1024*1024);        
+    MultipartRequest m=new MultipartRequest(request, "C:/Users/mani/Dropbox/acads/DDP/3D Model Editing/3DEditorEF/web/3DEditor/model", 100*1024*1024);        
     f2=m.getParameter("hidden");
     f1=m.getParameter("hidden1");
     request.setAttribute("f2",f2);
@@ -32,7 +32,7 @@ public class upload extends HttpServlet {
                  catch (Exception e) {
                 System.out.println(e);
 }
-            request.getRequestDispatcher("3d.jsp").forward(request, response);
+            request.getRequestDispatcher("3dEditor.jsp").forward(request, response);
 
     }
 
